@@ -11,6 +11,9 @@
 #define WIFI_PASS "asdewq0608"
 #define CONFIG_BLINK_PERIOD 1000
 static const char *TAG = "NTP_TIME";
+static void ntp_task(void* pram);
+
+
 
 void initialize_nvs() {
     esp_err_t ret = nvs_flash_init();// 初始化NVS, 并检查是否需要擦除NVS
@@ -127,11 +130,11 @@ void print_wifi_info() {
         ESP_LOGE(TAG, "Failed to get IP information");
     }
 }
-void app_main(void)
-{
-    initialize_nvs();// 初始化NVS
-    initialize_wifi();  // 初始化Wi-Fi
 
+
+
+static void ntp_task(void* pram)
+{
     while (1)
     {
         // 检查时间是否已同步
@@ -141,17 +144,29 @@ void app_main(void)
         localtime_r(&now, &timeinfo);//将时间戳转换为本地时间。
          // 打印当前时间的详细信息
         ESP_LOGI(TAG, "Current time: %04d-%02d-%02d %02d:%02d:%02d",
-             timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
-             timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+        timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
+        timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
         // 如果时间已同步（年份大于 2020）
         if (timeinfo.tm_year > (2020 - 1900)) {
             print_current_time();
+            vTaskDelete(NULL);
         } else {
             ESP_LOGI(TAG, "Waiting for time synchronization...");
         }
         vTaskDelay(CONFIG_BLINK_PERIOD / portTICK_PERIOD_MS*5);
-        print_wifi_info() ;
+        // print_wifi_info() ;
 
+    }
+}
+
+void app_main(void)
+{
+    initialize_nvs();// 初始化NVS
+    initialize_wifi();  // 初始化Wi-Fi
+    xTaskCreate(ntp_task,"ntp_task",4096,NULL,3,NULL);
+    while (1)
+    {
+        vTaskDelay(1000);
     }
 }
 
