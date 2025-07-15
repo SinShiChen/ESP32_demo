@@ -7,12 +7,13 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 
-#define WIFI_SSID "decade"	//注意替换wifi信息
+#define WIFI_SSID "lb"	//注意替换wifi信息
 #define WIFI_PASS "asdewq0608"
 #define CONFIG_BLINK_PERIOD 1000
 static const char *TAG = "NTP_TIME";
 static void ntp_task(void* pram);
-
+static void show_time_task(void* pram);
+SemaphoreHandle_t i2c_mutex;
 
 
 void initialize_nvs() {
@@ -22,6 +23,10 @@ void initialize_nvs() {
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+}
+
+void time_sync_notification_cb(struct timeval *tv) {
+    ESP_LOGI("SNTP", "Time synchronized");
 }
 
 // SNTP 初始化
@@ -34,6 +39,10 @@ void initialize_sntp() {
     // 添加 NTP 服务器
     esp_sntp_setservername(0, "cn.pool.ntp.org"); // 中国 NTP 服务器
     esp_sntp_setservername(1, "ntp1.aliyun.com"); //阿里云 NTP 服务器
+
+    sntp_set_sync_interval(30*60*1000);
+    sntp_set_time_sync_notification_cb(time_sync_notification_cb);
+
     // 初始化 SNTP
     esp_sntp_init();
 #else
@@ -41,12 +50,17 @@ void initialize_sntp() {
     sntp_setservername(0, "pool.ntp.org");
     sntp_setservername(1, "cn.pool.ntp.org");
     sntp_setservername(2, "ntp1.aliyun.com");
+
+
     sntp_init();// 初始化 SNTP
 #endif
     // 设置时区（例如：北京时间 UTC+8）
     setenv("TZ", "CST-8", 1);
     tzset();
 }
+
+
+
 
 // 打印当前时间
 void print_current_time() {
@@ -148,8 +162,16 @@ static void ntp_task(void* pram)
         timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
         // 如果时间已同步（年份大于 2020）
         if (timeinfo.tm_year > (2020 - 1900)) {
-            print_current_time();
-            vTaskDelete(NULL);
+            if (xSemaphoreTake(i2c_mutex, portMAX_DELAY))
+            {
+                print_current_time();
+                vTaskDelay(500);
+                ESP_LOGI(TAG, "remove");
+                xSemaphoreGive(i2c_mutex);
+                vTaskDelete(NULL);
+            }
+            // vTaskDelay(5000);
+
         } else {
             ESP_LOGI(TAG, "Waiting for time synchronization...");
         }
@@ -159,11 +181,41 @@ static void ntp_task(void* pram)
     }
 }
 
+static void show_time_task(void* pram)
+{
+    time_t now;
+    struct tm timeinfo;
+    while (1)
+    {
+        ESP_LOGI("show_time_task", "while");
+        if (xSemaphoreTake(i2c_mutex, portMAX_DELAY))
+        {
+            // 获取当前时间戳
+            time(&now);
+            // 将时间戳转换为本地时间
+            localtime_r(&now, &timeinfo);
+            char *time_str = asctime(&timeinfo);
+            if (time_str != NULL) {
+                // 去掉 asctime 输出的换行符
+                time_str[strlen(time_str) - 1] = '\0';
+                ESP_LOGI("show_time_task", "Current time: %s", time_str);
+            } else {
+                ESP_LOGE("show_time_task", "Failed to convert time to string");
+            }
+            xSemaphoreGive(i2c_mutex);
+        }
+        vTaskDelay(500);
+    }
+}
+
+
 void app_main(void)
 {
+    i2c_mutex = xSemaphoreCreateMutex();
     initialize_nvs();// 初始化NVS
     initialize_wifi();  // 初始化Wi-Fi
-    xTaskCreate(ntp_task,"ntp_task",4096,NULL,3,NULL);
+    xTaskCreate(ntp_task,"ntp_task",4096,NULL,2,NULL);
+    xTaskCreate(show_time_task,"show_time_task",4096,NULL,3,NULL);
     while (1)
     {
         vTaskDelay(1000);
