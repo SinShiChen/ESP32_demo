@@ -66,22 +66,11 @@ void initialize_sntp() {
 void print_current_time() {
     time_t now;
     struct tm timeinfo;
-   // char buffer[64];
-
    // 获取当前时间戳
     time(&now);
     // 将时间戳转换为本地时间
     localtime_r(&now, &timeinfo);
-    // 格式化时间
- // 使用 strftime 格式化时间
-    // strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
-    // ESP_LOGI(TAG, "Formatted time: %s", buffer);
 
-    // strftime(buffer, sizeof(buffer), "%A, %B %d, %Y %I:%M:%S %p", &timeinfo);
-    // ESP_LOGI(TAG, "Formatted time: %s", buffer);
-
-    // strftime(buffer, sizeof(buffer), "Today is %A, %B %d, %Y. The time is %I:%M %p.", &timeinfo);
-    // ESP_LOGI(TAG, "Formatted time: %s", buffer);
     // 使用 asctime 打印时间
     char *time_str = asctime(&timeinfo);
     if (time_str != NULL) {
@@ -171,13 +160,11 @@ static void ntp_task(void* pram)
                 vTaskDelete(NULL);
             }
             // vTaskDelay(5000);
-
         } else {
             ESP_LOGI(TAG, "Waiting for time synchronization...");
         }
         vTaskDelay(CONFIG_BLINK_PERIOD / portTICK_PERIOD_MS*5);
         // print_wifi_info() ;
-
     }
 }
 

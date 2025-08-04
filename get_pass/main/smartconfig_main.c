@@ -22,8 +22,10 @@
 #include "esp_smartconfig.h"
 #include "esp_mac.h"
 #include "esp_sntp.h"
+#include "nvs.h"
 
 #define CONFIG_BLINK_PERIOD 1000
+#define STORAGE_NAMESPACE "NVS"
 /* FreeRTOS event group to signal when we are connected & ready to make a request */
 static EventGroupHandle_t s_wifi_event_group;
 SemaphoreHandle_t i2c_mutex;
@@ -43,6 +45,102 @@ void time_sync_notification_cb(struct timeval *tv) {
     ESP_LOGI("SNTP", "Time synchronized");
 }
 
+
+
+esp_err_t nvs_check_have_write()
+{
+    esp_err_t err;
+    nvs_handle_t my_handle;
+    // Open
+    err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &my_handle);
+    if (err != ESP_OK) return err;
+
+    // Read the size of memory space required for blob
+    size_t required_size = 0;  // value will default to 0, if not set yet in NVS
+    err = nvs_get_blob(my_handle, "WIFI_PASS", NULL, &required_size);
+
+    if (err != ESP_OK) return err;
+
+   required_size = 0;  // value will default to 0, if not set yet in NVS
+    err = nvs_get_blob(my_handle, "WIFI_SSID", NULL, &required_size);
+
+    // Close
+    nvs_close(my_handle);
+    return err;
+}
+
+
+esp_err_t nvs_write(char* WIFI_PASS,char* WIFI_SSID,int size_WIFI_PASS,int size_WIFI_SSID)
+{
+    esp_err_t err;
+    nvs_handle_t my_handle;
+    // Open
+    err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &my_handle);
+    if (err != ESP_OK) return err;
+
+    err = nvs_set_blob(my_handle, "WIFI_PASS", WIFI_PASS, size_WIFI_PASS);
+    if (err != ESP_OK) return err;
+    err = nvs_set_blob(my_handle, "WIFI_SSID", WIFI_SSID, size_WIFI_SSID);
+    if (err != ESP_OK) return err;
+    // Commit
+    err = nvs_commit(my_handle);
+    if (err != ESP_OK) return err;
+    // Close
+    nvs_close(my_handle);
+    return ESP_OK;
+}
+
+esp_err_t nvs_get_PASS(char** WIFI_PASS)
+{
+    esp_err_t err;
+    nvs_handle_t my_handle;
+
+    // Open
+    err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &my_handle);
+    if (err != ESP_OK) return err;
+
+    // Read the size of memory space required for blob
+    size_t size = 0;  // value will default to 0, if not set yet in NVS
+    err = nvs_get_blob(my_handle, "WIFI_PASS", NULL, &size);
+
+    if (err != ESP_OK) return err;
+    *WIFI_PASS = malloc(size);
+    // Read previously saved blob if available
+    if (size > 0) {
+        err = nvs_get_blob(my_handle, "WIFI_PASS", *WIFI_PASS, &size);
+        if (err != ESP_OK) {
+            return err;
+        }
+    }
+    ESP_LOGI(STORAGE_NAMESPACE, "WIFI_PASS: %s", *WIFI_PASS);
+    return err;
+}
+
+esp_err_t nvs_get_SSID(char** WIFI_SSID)
+{
+    esp_err_t err;
+    nvs_handle_t my_handle;
+
+    // Open
+    err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &my_handle);
+    if (err != ESP_OK) return err;
+
+    // Read the size of memory space required for blob
+    size_t size = 0;  // value will default to 0, if not set yet in NVS
+    err = nvs_get_blob(my_handle, "WIFI_SSID", NULL, &size);
+
+    if (err != ESP_OK) return err;
+    *WIFI_SSID = malloc(size);
+    // Read previously saved blob if available
+    if (size > 0) {
+        err = nvs_get_blob(my_handle, "WIFI_SSID", *WIFI_SSID, &size);
+        if (err != ESP_OK) {
+            return err;
+        }
+    }
+    ESP_LOGI(STORAGE_NAMESPACE, "WIFI_SSID: %s", *WIFI_SSID);
+    return err;
+}
 
 // SNTP 初始化
 void initialize_sntp() {
@@ -94,6 +192,20 @@ void print_current_time() {
     }
 }
 
+//事件回调
+void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+        esp_wifi_connect();
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        esp_wifi_connect();
+    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+        ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
+        ESP_LOGI("WIFI", "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
+        ESP_LOGI(TAG, "Wi-Fi connected, initializing SNTP...");
+        initialize_sntp();
+    }
+}
+
 
 static void event_handler(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data)
@@ -138,6 +250,12 @@ static void event_handler(void* arg, esp_event_base_t event_base,
         memcpy(password, evt->password, sizeof(evt->password));
         ESP_LOGI(TAG, "SSID:%s", ssid);
         ESP_LOGI(TAG, "PASSWORD:%s", password);
+        esp_err_t res = nvs_write(&password,&ssid,sizeof(evt->password),sizeof(evt->ssid));
+        if (res == ESP_OK)
+            ESP_LOGI("NVS_write", "OK");
+        else
+            ESP_LOGI("NVS_write", "NG");
+
         if (evt->type == SC_TYPE_ESPTOUCH_V2) {
             ESP_ERROR_CHECK( esp_smartconfig_get_rvd_data(rvd_data, sizeof(rvd_data)) );
             ESP_LOGI(TAG, "RVD_DATA:");
@@ -155,7 +273,36 @@ static void event_handler(void* arg, esp_event_base_t event_base,
     }
 }
 
-static void initialise_wifi(void)
+void initialize_wifi(char* ssid,char* pass,int ssid_len,int pass_len) {
+    esp_netif_init();
+    esp_event_loop_create_default();
+    esp_netif_create_default_wifi_sta();
+
+    ESP_LOGI("WIFI_set", "WIFI_SSID: %s len %d", ssid,ssid_len);
+    ESP_LOGI("WIFI_set", "wifi_pass: %s len %d", pass,pass_len);
+
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));// 注册WiFi事件处理程序
+    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL));// 注册IP事件处理程序
+
+    // wifi_config_t wifi_config = {
+    //     .sta = {
+    //         .ssid = ssid,
+    //         .password = pass,
+    //     },
+    // };
+    wifi_config_t wifi_config;
+    bzero(&wifi_config, sizeof(wifi_config_t));
+    memcpy(wifi_config.sta.ssid, ssid, ssid_len);
+    memcpy(wifi_config.sta.password, pass, pass_len);
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));// 设置为STA模式
+    ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));// 设置WiFi配置
+    ESP_ERROR_CHECK(esp_wifi_start());// 启动WiFi
+}
+
+static void initialise_wifi_sc(void)
 {
     ESP_ERROR_CHECK(esp_netif_init());
     s_wifi_event_group = xEventGroupCreate();
@@ -251,11 +398,37 @@ static void show_time_task(void* pram)
     }
 }
 
+
+
 void app_main(void)
 {
+    char *wifi_id,*wifi_pass;
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        // NVS partition was truncated and needs to be erased
+        // Retry nvs_flash_init
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        err = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK( err );
+
+
     i2c_mutex = xSemaphoreCreateMutex();
-    ESP_ERROR_CHECK( nvs_flash_init() );
-    initialise_wifi();
+    if (nvs_check_have_write() != ESP_OK)
+    {
+        ESP_LOGI("WIFI_get_fail", "WIFI_SSID: %s", wifi_id);
+
+        initialise_wifi_sc();
+    }
+    else
+    {
+        nvs_get_PASS(&wifi_pass);
+        nvs_get_SSID(&wifi_id);
+        ESP_LOGI("WIFI_get", "WIFI_SSID: %s", wifi_id);
+        ESP_LOGI("WIFI_get", "wifi_pass: %s", wifi_pass);
+        initialize_wifi(wifi_id,wifi_pass,strlen(wifi_id),strlen(wifi_pass));
+    }
+
     xTaskCreate(ntp_task,"ntp_task",4096,NULL,2,NULL);
     xTaskCreate(show_time_task,"show_time_task",4096,NULL,3,NULL);
 }
