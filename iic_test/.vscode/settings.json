@@ -1,0 +1,44 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.espIdfPathWin": "d:\\Espressif\\frameworks\\esp-idf-v5.3.1",
+  "idf.pythonInstallPath": "D:\\Espressif\\tools\\idf-python\\3.11.2\\python.exe",
+  "idf.openOcdConfigs": [
+    "board/esp32s3-builtin.cfg"
+  ],
+  "idf.portWin": "COM8",
+  "idf.toolsPathWin": "D:\\Espressif",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32s3"
+  },
+  "files.associations": {
+    "i2c_master.h": "c",
+    "esp_err.h": "c",
+    "stdint.h": "c",
+    "bit": "cpp",
+    "compare": "cpp",
+    "concepts": "cpp",
+    "limits": "cpp",
+    "new": "cpp",
+    "type_traits": "cpp",
+    "i2c_icm20602.h": "c",
+    "esp_types.h": "c",
+    "esp_check.h": "c",
+    "task.h": "c",
+    "freertos.h": "c",
+    "array": "c",
+    "bitset": "c",
+    "string_view": "c",
+    "format": "c",
+    "initializer_list": "c",
+    "span": "c",
+    "regex": "c",
+    "algorithm": "c",
+    "string": "c",
+    "esp_log.h": "c",
+    "i2c_ds3231.h": "c",
+    "i2c.h": "c",
+    "i2c_eeprom.h": "c",
+    "stdbool.h": "c"
+  },
+  "idf.flashType": "UART"
+}
