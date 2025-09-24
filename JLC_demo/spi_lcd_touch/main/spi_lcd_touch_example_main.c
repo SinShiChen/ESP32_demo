@@ -150,7 +150,7 @@ static void example_lvgl_touch_cb(lv_indev_t * indev, lv_indev_data_t * data)
 
     if (touchpad_pressed && touchpad_cnt > 0) {
         data->point.x = touchpad_x[0];
-        data->point.y = touchpad_y[0]-80;
+        data->point.y = touchpad_y[0];
         // ESP_LOGI("TP","x %d  y%d",(int)data->point.x,(int)data->point.y);
         data->state = LV_INDEV_STATE_PRESSED;
     } else {
@@ -456,8 +456,8 @@ void app_main(void)
     esp_lcd_new_panel_io_i2c(bus_handle, &tp_io_config, &io_handle);
 
     esp_lcd_touch_config_t tp_cfg = {
-        .x_max = EXAMPLE_LCD_H_RES,
-        .y_max = EXAMPLE_LCD_V_RES,
+        .x_max = EXAMPLE_LCD_V_RES,
+        .y_max = EXAMPLE_LCD_H_RES,
         .rst_gpio_num = -1,
         .int_gpio_num = -1,
         .levels = {
