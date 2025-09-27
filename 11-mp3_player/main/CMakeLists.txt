@@ -1,4 +1,3 @@
-idf_component_register(SRCS "esp32_s3_szp.c" "main.c" "app_ui.c"
+idf_component_register(SRCS "esp32_s3_szp.c" "main.c" "app_ui.c" "siyuan.c" "GenShinGothic_ExtraLight_2.c"
                     INCLUDE_DIRS ".")
 
-#spiffs_create_partition_image(storage ../spiffs FLASH_IN_PROJECT)

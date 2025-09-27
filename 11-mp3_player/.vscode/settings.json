@@ -14,10 +14,7 @@
   ],
   "idf.flashType": "UART",
   "idf.portWin": "COM7",
-  "idf.espIdfPathWin": "d:\\Espressif\\frameworks\\esp-idf-v5.1.4",
-  "idf.toolsPathWin": "D:\\Espressif",
-  "idf.pythonInstallPath": "D:\\Espressif\\tools\\idf-python\\3.11.2\\python.exe",
   "files.associations": {
-    "esp32_s3_szp.h": "c"
+    "esp_lvgl_port.h": "c"
   }
 }

@@ -4,6 +4,9 @@
 #include "file_iterator.h"
 #include "string.h"
 #include <dirent.h>
+#include "siyuan.h"
+#include "GenShinGothic_ExtraLight_2.h"
+
 
 static const char *TAG = "app_ui";
 
@@ -114,8 +117,7 @@ static void _audio_player_callback(audio_player_cb_ctx_t *ctx)
 void mp3_player_init(void)
 {
     // 获取文件信息
-    file_iterator = file_iterator_new(EXAMPLE_SD_MOUNT_POINT); //  SPIFFS_BASE
-    // file_iterator = file_iterator_new(SPIFFS_BASE); //  SPIFFS_BASE
+    file_iterator = file_iterator_new(EXAMPLE_SD_MOUNT_POINT);
     assert(file_iterator != NULL);
 
     // 初始化音频播放
@@ -365,20 +367,30 @@ void music_ui(void)
     lv_obj_t *lab_title = lv_label_create(lv_scr_act());
     lv_obj_set_user_data(lab_title, (void *) btn_play_pause);
     lv_label_set_text_static(lab_title, "Scanning Files...");
-    lv_obj_set_style_text_font(lab_title, &lv_font_montserrat_32, LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(lab_title, &GenShinGothic_ExtraLight_2, LV_STATE_DEFAULT);
     lv_obj_align(lab_title, LV_ALIGN_TOP_MID, 0, 20);
 
     /* 创建音乐列表 */ 
     music_list = lv_dropdown_create(lv_scr_act());
     lv_dropdown_clear_options(music_list);
     lv_dropdown_set_options_static(music_list, "Scanning...");
-    lv_obj_set_style_text_font(music_list, &lv_font_montserrat_20, LV_STATE_ANY);
-    lv_obj_set_width(music_list, 200);
-    lv_obj_align_to(music_list, lab_title, LV_ALIGN_OUT_BOTTOM_MID, 0, 20);
+    lv_obj_set_style_text_font(music_list, &GenShinGothic_ExtraLight_2, LV_STATE_ANY);
+
+    lv_obj_set_width(music_list, 300);
+    lv_obj_align_to(music_list, lab_title, LV_ALIGN_OUT_BOTTOM_MID, 0, 30);
     lv_obj_set_user_data(music_list, (void *) lab_title);
     lv_obj_add_event_cb(music_list, music_list_cb, LV_EVENT_VALUE_CHANGED, NULL);
 
     build_file_list(music_list);
+
+    // static lv_style_t style_list;
+    // lv_style_init(&style_list);
+    // lv_style_set_text_font(&style_list, &siyuan);
+    // lv_obj_add_style(lv_dropdown_get_list(music_list), LV_PART_MAIN, (lv_style_selector_t)&style_list);
+    lv_obj_t *list = lv_dropdown_get_list(music_list);
+    lv_obj_set_style_text_font(music_list,&GenShinGothic_ExtraLight_2,0);
+    lv_obj_set_style_text_font(music_list, &lv_font_montserrat_20, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(list,&GenShinGothic_ExtraLight_2,0);
 
     lvgl_port_unlock();
 }

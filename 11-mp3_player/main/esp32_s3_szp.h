@@ -39,7 +39,7 @@ esp_err_t bsp_i2c_init(void);   // 初始化I2C接口
 /***************************  I2C ↑  *******************************************/
 /*******************************************************************************/
 
-
+#define EXAMPLE_SD_MOUNT_POINT     "/sdcard"
 /*******************************************************************************/
 /***************************  姿态传感器 QMI8658 ↓   ****************************/
 #define  QMI8658_SENSOR_ADDR       0x6A   // QMI8658 I2C地址
@@ -248,9 +248,6 @@ void app_camera_lcd(void);
 /***************    SPIFFS文件系统 ↓   *********************/
 #define SPIFFS_BASE             "/spiffs"
 
-
-#define EXAMPLE_SD_MOUNT_POINT     "/sdcard"
-#define EXAMPLE_SD_MOUNT_POINT_MP3     "/sdcard/MP3"
 esp_err_t bsp_spiffs_mount(void);
 
 /***************    SPIFFS文件系统 ↑  *********************/
@@ -282,6 +279,5 @@ esp_err_t bsp_codec_set_fs(uint32_t rate, uint32_t bits_cfg, i2s_slot_mode_t ch)
 esp_err_t bsp_codec_mute_set(bool enable);
 esp_err_t bsp_codec_volume_set(int volume, int *volume_set);
 sdmmc_card_t * mount_sdcard(void);
-
 /*********************    音频 ↑   *************************/
 /***********************************************************/
