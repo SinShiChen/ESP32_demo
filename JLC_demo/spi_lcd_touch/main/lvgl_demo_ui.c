@@ -8,6 +8,9 @@
 
 #include "lvgl.h"
 #include "esp_log.h"
+
+#include "siyuan.h"
+
 static lv_obj_t * btn;
 static lv_display_rotation_t rotation = LV_DISP_ROTATION_0;
 
@@ -56,4 +59,9 @@ void example_lvgl_demo_ui(lv_display_t *disp)
     lv_anim_set_repeat_delay(&a, 500);
     lv_anim_set_values(&a, 0, 100);
     lv_anim_start(&a);
+
+    lv_obj_t *label = lv_label_create(scr);
+    lv_label_set_text(label, "你好,ESP32!\r    我喜欢洛天依");
+    lv_obj_align(label, LV_ALIGN_TOP_LEFT, 30, 30);
+    lv_obj_set_style_text_font(label, &siyuan, LV_PART_MAIN);
 }

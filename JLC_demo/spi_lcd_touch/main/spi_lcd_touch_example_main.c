@@ -36,6 +36,8 @@ static const char *TAG = "example";
 #include "demos/lv_demos.h"
 #include "driver/i2c_master.h"
 #include "yingwu.h"
+#include "siyuan.c"
+
 #define BSP_I2C_SDA           (GPIO_NUM_1)   // SDA引脚
 #define BSP_I2C_SCL           (GPIO_NUM_2)   // SCL引脚
 
@@ -488,8 +490,8 @@ void app_main(void)
     ESP_LOGI(TAG, "Display LVGL Meter Widget");
     // Lock the mutex due to the LVGL APIs are not thread-safe
     _lock_acquire(&lvgl_api_lock);
-    // example_lvgl_demo_ui(display);
-    lv_demo_widgets();
+    example_lvgl_demo_ui(display);
+    // lv_demo_widgets();
     _lock_release(&lvgl_api_lock);
 
 }
