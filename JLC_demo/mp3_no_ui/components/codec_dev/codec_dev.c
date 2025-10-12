@@ -30,7 +30,6 @@ static void ut_clr_i2s_mode(void)
 
 static int ut_i2s_init(uint8_t port)
 {
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
     if (port >= I2S_MAX_KEEP) {
         return -1;
     }
@@ -91,29 +90,7 @@ static int ut_i2s_init(uint8_t port)
     
     // For tx master using duplex mode
     i2s_channel_enable(i2s_keep[port]->tx_handle);
-#else
-    i2s_config_t i2s_config = {
-        .mode = (i2s_mode_t) (I2S_MODE_TX | I2S_MODE_RX | I2S_MODE_MASTER),
-        .sample_rate = 44100,
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
-        .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
-        .communication_format = I2S_COMM_FORMAT_STAND_I2S,
-        .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2 | ESP_INTR_FLAG_IRAM,
-        .dma_buf_count = 2,
-        .dma_buf_len = 128,
-        .use_apll = true,
-        .tx_desc_auto_clear = true,
-    };
-    int ret = i2s_driver_install(port, &i2s_config, 0, NULL);
-    i2s_pin_config_t i2s_pin_cfg = {
-        .mck_io_num = TEST_BOARD_I2S_MCK_PIN,
-        .bck_io_num = TEST_BOARD_I2S_BCK_PIN,
-        .ws_io_num = TEST_BOARD_I2S_DATA_WS_PIN,
-        .data_out_num = TEST_BOARD_I2S_DATA_OUT_PIN,
-        .data_in_num = TEST_BOARD_I2S_DATA_IN_PIN,
-    };
-    i2s_set_pin(port, &i2s_pin_cfg);
-#endif
+
     return ret;
 }
 
@@ -212,6 +189,7 @@ esp_err_t _audio_player_write_fn(void *audio_buffer, size_t len, size_t *bytes_w
 static esp_err_t _audio_player_std_clock(uint32_t rate, uint32_t bits_cfg, i2s_slot_mode_t ch)
 {
     esp_err_t ret = ESP_OK;
+    esp_codec_dev_close(play_dev);
     esp_codec_dev_sample_info_t fs = {
         .sample_rate = rate,
         .channel = ch,
