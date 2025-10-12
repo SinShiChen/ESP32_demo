@@ -237,11 +237,13 @@ static void play_index(int index)
     for (size_t i = index; i < file_count; i++)
     {
         int retval = file_iterator_get_full_path_from_index(file_iterator, i, filename, sizeof(filename));
+        ESP_LOGI(TAG, "name '%s'", filename);
+
         if (retval == 0) {
             ESP_LOGE(TAG, "unable to retrieve filename");
             return;
         }
-        if (strcasestr(filename, ".wav") != NULL) {
+        if (strcasestr(filename, ".mp3") != NULL || strcasestr(filename, ".wav") != NULL) {
             break;
         }
         file_iterator_next(file_iterator);
@@ -267,6 +269,7 @@ static void _audio_player_callback(audio_player_cb_ctx_t *ctx)
      ESP_LOGI(TAG, "event %d",ctx->audio_event);
     switch (ctx->audio_event) {
     case AUDIO_PLAYER_CALLBACK_EVENT_IDLE: {  // 播放完一首歌 进入这个case
+        pa_en(&i2c_pca9557_handle,0); // 关闭音频功放
         ESP_LOGI(TAG, "AUDIO_PLAYER_REQUEST_IDLE");
         // 指向下一首歌
         file_iterator_next(file_iterator);

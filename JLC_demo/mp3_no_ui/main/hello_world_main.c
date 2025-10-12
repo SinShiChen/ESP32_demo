@@ -53,15 +53,6 @@ void app_main(void)
     code_dev_init(&i2c_bus_handle);
     
     sdmmc_card_t *sdmmc_card = mount_sdcard();
-    FILE *fp = fopen(EXAMPLE_SD_MOUNT_POINT "/test.wav", "r");   
-    
-    if (fp == NULL) {
-        ESP_LOGE("open","File open error");
-        while (1)
-        {
-            vTaskDelay(1000);
-        }
-    }
 
     // bool not_break = true;
     // static  uint8_t buffer[4096];
