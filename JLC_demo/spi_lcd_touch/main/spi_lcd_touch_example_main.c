@@ -398,18 +398,8 @@ void app_main(void)
     
     lcd_set_color(panel_handle,0X0000);
 
-    // uint16_t arr_1[100];
-    // memset(&arr_1,0X00A0,sizeof(uint16_t)*100);
-    // lcd_draw_pictrue(panel_handle,0, 0, 10, 10, (unsigned char *)arr_1); 
-    // vTaskDelay(pdMS_TO_TICKS(1000));
 
-    // memset(&arr_1,0Xf8A0,sizeof(uint16_t)*100);
-    // lcd_draw_pictrue(panel_handle,EXAMPLE_LCD_H_RES-10, 0, 10, 10, (unsigned char *)arr_1); 
-    // memset(&arr_1,0Xf0A0,sizeof(uint16_t)*100);
-    // lcd_draw_pictrue(panel_handle,0, 120 - 10, 10, 120, (unsigned char *)arr_1); 
     
-    // lcd_draw_pictrue(panel_handle,0, 0, 320, 240, gImage_yingwu); // 显示3只鹦鹉图片
-    // vTaskDelay(pdMS_TO_TICKS(1000));
     ESP_LOGI(TAG, "Initialize LVGL library");
     lv_init();
 

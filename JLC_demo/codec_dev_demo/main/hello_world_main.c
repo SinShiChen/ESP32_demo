@@ -359,12 +359,9 @@ void app_main(void)
     ret = esp_codec_dev_open(play_dev, &fs);
     TEST_ESP_OK(ret);
     uint8_t *p = music_pcm_start;
-    ESP_LOGI("tets","start %p end %p len %d ",&music_pcm_start,&music_pcm_end,music_pcm_end-music_pcm_start);
-
 
     for (int i = 0; i < ((music_pcm_end-music_pcm_start));)
     {
-        
         ret = esp_codec_dev_write(play_dev, p+i, 256);
         TEST_ESP_OK(ret);
         i += 256;
@@ -372,7 +369,6 @@ void app_main(void)
         if(i == music_pcm_end-music_pcm_start)
             i = 0;
     }
-    ESP_LOGI("e","break");
     while (1)
     {
         vTaskDelay(1000);
