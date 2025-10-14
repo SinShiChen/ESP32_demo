@@ -30,8 +30,9 @@
     "dirent.h": "c",
     "pca9557.h": "c",
     "esp_system.h": "c",
-    "sdmount.h": "c"
+    "sdmount.h": "c",
+    "genshingothic_extralight_2.h": "c"
   },
   "idf.flashType": "UART",
-  "idf.portWin": "COM13"
+  "idf.portWin": "COM10"
 }

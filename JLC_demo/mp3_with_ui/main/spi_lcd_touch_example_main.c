@@ -35,8 +35,7 @@
 static const char *TAG = "example";
 #include "demos/lv_demos.h"
 #include "driver/i2c_master.h"
-#include "yingwu.h"
-#include "siyuan.c"
+
 
 #include "app_ui.h"
 #include "PCA9557.h"
