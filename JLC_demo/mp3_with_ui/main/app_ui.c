@@ -4,9 +4,11 @@
 #include "file_iterator.h"
 #include "string.h"
 #include <dirent.h>
-#include "lvgl.h"
+#include "codec_dev.h"
 #include "sdmount.h"
 #include "esp_log.h"
+#include "codec_dev.h"
+
 static const char *TAG = "app_ui";
 #include "GenShinGothic_ExtraLight_2.h"
 
@@ -15,7 +17,7 @@ static uint8_t g_sys_volume = 80;
 static file_iterator_instance_t *file_iterator = NULL;
 
 lv_obj_t *music_list;
-
+_lock_t lvgl_api_lock;
 
 // 按钮样式相关定义
 typedef struct {
@@ -46,18 +48,57 @@ static void ui_button_style_init(void)
 // 播放暂停按钮 事件处理函数
 static void btn_play_pause_cb(lv_event_t *event)
 {
-
+    lv_obj_t *btn = lv_event_get_target(event);
+    lv_obj_t *lab = lv_obj_get_user_data(btn);
+    player_message_t msg={CMD_PLAY,""};
+    // _lock_acquire(&lvgl_api_lock);
+    const char * text = lv_label_get_text(lab);
+    if (memcmp(text,LV_SYMBOL_PAUSE,3)==0)
+    {
+        lv_label_set_text_static(lab, LV_SYMBOL_PLAY);
+        msg.cmd = CMD_PLAY;
+    }
+    else if (memcmp(text,LV_SYMBOL_PLAY,3)==0)
+    {
+        lv_label_set_text_static(lab, LV_SYMBOL_PAUSE);
+        msg.cmd = CMD_PAUSE;
+    }
+    xQueueSend(mp3_queue_handle, &msg, portMAX_DELAY);
+    // _lock_release(&lvgl_api_lock);
 }
 
 // 上一首 下一首 按键事件处理函数
 static void btn_prev_next_cb(lv_event_t *event)
 {
-   
+    bool is_next = lv_event_get_user_data(event);
+    player_message_t msg;
+    if (is_next) {
+        ESP_LOGI(TAG, "btn next");
+    } else {
+        ESP_LOGI(TAG, "btn prev");
+    }
+    int index = file_iterator_get_index(file_iterator);
+    msg.cmd = CMD_PLAY_SELECTED;
+    memset(msg.file_path,0,256);
+    file_iterator_get_full_path_from_index(file_iterator, index,msg.file_path,256);
+    xQueueSend(mp3_queue_handle, &msg, portMAX_DELAY);
+    file_iterator_prev(file_iterator);
+
+    // _lock_acquire(&lvgl_api_lock);
+    lv_dropdown_set_selected(music_list, index);
+    lv_obj_t *label_title = lv_obj_get_user_data(music_list);
+    lv_label_set_text_static(label_title, file_iterator_get_name_from_index(file_iterator, index));
+    // _lock_release(&lvgl_api_lock);
 }
 
 // 音量调节滑动条 事件处理函数
 static void volume_slider_cb(lv_event_t *event)
 {
+    lv_obj_t *slider = lv_event_get_target(event);
+    int volume = lv_slider_get_value(slider); // 获取slider的值
+    codec_devplayer_write_db(volume);
+    g_sys_volume = volume; // 把声音赋值给g_sys_volume保存
+    ESP_LOGI(TAG, "volume '%d'", volume);
 
 }
 

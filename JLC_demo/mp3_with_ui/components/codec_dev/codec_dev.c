@@ -3,8 +3,11 @@
 #include "audio_player.h"
 #include "sdmount.h"
 #include "PCA9557.h"
+
 static const char *TAG = "player";
 
+EventGroupHandle_t mp3_play_event = NULL;
+QueueHandle_t mp3_queue_handle = NULL;
 typedef struct {
     i2s_chan_handle_t tx_handle;
     i2s_chan_handle_t rx_handle;
@@ -175,6 +178,10 @@ esp_err_t code_dev_init(i2c_master_bus_handle_t *i2c_bus_handle)
     esp_codec_dev_open(play_dev, &fs);
     return ESP_OK;
 }
+int codec_devplayer_write_db(int db)
+{
+    return esp_codec_dev_set_out_vol(play_dev, db);
+}
 
 // 播放音乐函数 播放音乐的时候 会不断进入
 esp_err_t _audio_player_write_fn(void *audio_buffer, size_t len, size_t *bytes_written, uint32_t timeout_ms)
@@ -240,6 +247,7 @@ static esp_err_t _audio_player_mute_fn(AUDIO_PLAYER_MUTE_SETTING setting)
 {
     return ESP_OK;
 }
+
 // 回调函数 播放器每次动作都会进入
 static void _audio_player_callback(audio_player_cb_ctx_t *ctx)
 {
@@ -250,10 +258,10 @@ static void _audio_player_callback(audio_player_cb_ctx_t *ctx)
         pa_en(&i2c_pca9557_handle,0); // 关闭音频功放
         ESP_LOGI(TAG, "AUDIO_PLAYER_REQUEST_IDLE");
         // 指向下一首歌
-        file_iterator_next(file_iterator);
-        int index = file_iterator_get_index(file_iterator);
-        ESP_LOGI(TAG, "playing index '%d'", index);
-        play_index(index);
+        // file_iterator_next(file_iterator);
+        // int index = file_iterator_get_index(file_iterator);
+        // ESP_LOGI(TAG, "playing index '%d'", index);
+        // play_index(index);
         // 修改当前播放的音乐名称
         break;
     }
@@ -269,10 +277,54 @@ static void _audio_player_callback(audio_player_cb_ctx_t *ctx)
         break;
     }
 }
+
+
+
+static void recive_task(void* pvParameters)
+{
+    BaseType_t event;
+    player_message_t msg;
+    bool play_is_pause = true;
+    while (1)
+    {
+        if(xQueueReceive(mp3_queue_handle, &msg, portMAX_DELAY)) {
+            switch (msg.cmd)
+            {
+            case CMD_PLAY_SELECTED:
+                FILE *fp = fopen(msg.file_path, "rb");
+                if (fp) {
+                    ESP_LOGI(TAG, "Playing '%s'", msg.file_path);
+                    audio_player_play(fp);
+                } else {
+                    ESP_LOGE(TAG, "unable to openfilename '%s'", msg.file_path);
+                }
+                break;
+            case CMD_PLAY:
+                play_is_pause = true;
+                break;
+            case CMD_PAUSE:
+                play_is_pause = false;
+                break;  
+            default:
+                break;
+            }
+            if (play_is_pause)
+            {
+                audio_player_resume();
+            }
+            else
+                audio_player_pause();
+        }
+    }
+    
+}
+
 static audio_player_config_t player_config = {0};
 // mp3播放器初始化
 void mp3_player_init(void)
 {
+
+    xTaskCreate(recive_task,"recive",4096,NULL,2,NULL);
     // 获取文件信息
     file_iterator = file_iterator_new(EXAMPLE_SD_MOUNT_POINT);
     assert(file_iterator != NULL);
@@ -285,7 +337,7 @@ void mp3_player_init(void)
 
     ESP_ERROR_CHECK(audio_player_new(player_config));
     ESP_ERROR_CHECK(audio_player_callback_register(_audio_player_callback, NULL));
-    // file_iterator_next(file_iterator);
+    file_iterator_next(file_iterator);
     int index = file_iterator_get_index(file_iterator);
     play_index(index);
     audio_player_resume();
